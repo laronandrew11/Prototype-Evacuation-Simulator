@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<graphml xmlns="http://graphml.graphdrawing.org/xmlns/graphml"
+xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"  
+xsi:schemaLocation="http://graphml.graphdrawing.org/xmlns/graphml">
+<key id="backgroundImage" for="graph">
+<default>0</default>
+</key>
+<key id="hazardLevel" for="node">
+<default>0</default>
+</key>
+<key id="maxCapacity" for="node">
+<default>0</default>
+</key>
+<key id="y" for="node">
+<default>0</default>
+</key>
+<key id="isExit" for="node">
+<default>false</default>
+</key>
+<key id="x" for="node">
+<default>0</default>
+</key>
+<key id="maxCapacity" for="edge">
+<default>0</default>
+</key>
+<key id="length" for="edge">
+<default>0</default>
+</key>
+<graph edgedefault="directed">
+<data key="backgroundImage">test_floorplan.jpg</data>
+<node id="V3">
+<data key="hazardLevel">0.0</data>
+<data key="maxCapacity">20.0</data>
+<data key="y">50.0</data>
+<data key="isExit">false</data>
+<data key="x">50.0</data>
+</node>
+<node id="V1">
+<data key="hazardLevel">0.0</data>
+<data key="maxCapacity">20.0</data>
+<data key="y">175.0</data>
+<data key="isExit">false</data>
+<data key="x">50.0</data>
+</node>
+<node id="V2">
+<data key="hazardLevel">0.0</data>
+<data key="maxCapacity">20.0</data>
+<data key="y">50.0</data>
+<data key="isExit">true</data>
+<data key="x">100.0</data>
+</node>
+<node id="V0">
+<data key="hazardLevel">0.0</data>
+<data key="maxCapacity">20.0</data>
+<data key="y">50.0</data>
+<data key="isExit">true</data>
+<data key="x">200.0</data>
+</node>
+<edge directed="false" source="V1" target="V0">
+<data key="maxCapacity">30.0</data>
+<data key="length">10.0</data>
+</edge>
+<edge directed="false" source="V1" target="V2">
+<data key="maxCapacity">30.0</data>
+<data key="length">7.0</data>
+</edge>
+<edge directed="false" source="V3" target="V1">
+<data key="maxCapacity">30.0</data>
+<data key="length">15.0</data>
+</edge>
+</graph>
+</graphml>

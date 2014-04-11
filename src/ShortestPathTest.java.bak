@@ -1,0 +1,333 @@
+/*
+ * Created on Jan 2, 2004
+ */
+
+
+import java.awt.BasicStroke;
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Component;
+import java.awt.Graphics;
+import java.awt.Paint;
+import java.awt.Stroke;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.geom.Point2D;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.TreeSet;
+
+import javax.swing.BorderFactory;
+import javax.swing.BoxLayout;
+import javax.swing.JComboBox;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+import javax.swing.SwingConstants;
+
+import org.apache.commons.collections15.Factory;
+import org.apache.commons.collections15.Transformer;
+
+import edu.uci.ics.jung.algorithms.generators.random.EppsteinPowerLawGenerator;
+import edu.uci.ics.jung.algorithms.layout.FRLayout;
+import edu.uci.ics.jung.algorithms.layout.Layout;
+import edu.uci.ics.jung.algorithms.shortestpath.BFSDistanceLabeler;
+import edu.uci.ics.jung.graph.Graph;
+import edu.uci.ics.jung.graph.SparseMultigraph;
+import edu.uci.ics.jung.graph.util.Pair;
+import edu.uci.ics.jung.visualization.Layer;
+import edu.uci.ics.jung.visualization.VisualizationViewer;
+import edu.uci.ics.jung.visualization.control.DefaultModalGraphMouse;
+import edu.uci.ics.jung.visualization.decorators.ToStringLabeller;
+import edu.uci.ics.jung.visualization.renderers.Renderer;
+
+/**
+ * Demonstrates use of the shortest path algorithm and visualization of the
+ * results.
+ * 
+ * @author danyelf
+ */
+public class ShortestPathTest extends JPanel {
+
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 7526217664458188502L;
+
+	/**
+	 * Starting vertex
+	 */
+	private Node mFrom;
+
+	/**
+	 * Ending vertex
+	 */	
+	private Node mTo;
+	private Graph<Node,Edge> mGraph;
+	private Set<Node> mPred;
+
+	public ShortestPathTest() {
+
+		this.mGraph = getGraph();
+		setBackground(Color.WHITE);
+		// show graph
+        final Layout<Node,Edge> layout = new FRLayout<Node,Edge>(mGraph);
+        final VisualizationViewer<Node,Edge> vv = new VisualizationViewer<Node,Edge>(layout);
+        vv.setBackground(Color.WHITE);
+
+        vv.getRenderContext().setVertexDrawPaintTransformer(new MyVertexDrawPaintFunction<Node>());
+        vv.getRenderContext().setVertexFillPaintTransformer(new MyVertexFillPaintFunction<Node>());
+        vv.getRenderContext().setEdgeDrawPaintTransformer(new MyEdgePaintFunction());
+        vv.getRenderContext().setEdgeStrokeTransformer(new MyEdgeStrokeFunction());
+        vv.getRenderContext().setVertexLabelTransformer(new ToStringLabeller<Node>());
+        vv.setGraphMouse(new DefaultModalGraphMouse<Node, Edge>());
+        vv.addPostRenderPaintable(new VisualizationViewer.Paintable(){
+            
+            public boolean useTransform() {
+                return true;
+            }
+            public void paint(Graphics g) {
+                if(mPred == null) return;
+                
+                // for all edges, paint edges that are in shortest path
+                for (Edge e : layout.getGraph().getEdges()) {
+                    
+                    if(isBlessed(e)) {
+                        Node v1 = mGraph.getEndpoints(e).getFirst();
+                        Node v2 = mGraph.getEndpoints(e).getSecond();
+                        Point2D p1 = layout.transform(v1);
+                        Point2D p2 = layout.transform(v2);
+                        p1 = vv.getRenderContext().getMultiLayerTransformer().transform(Layer.LAYOUT, p1);
+                        p2 = vv.getRenderContext().getMultiLayerTransformer().transform(Layer.LAYOUT, p2);
+                        Renderer<Node,Edge> renderer = vv.getRenderer();
+                        renderer.renderEdge(
+                                vv.getRenderContext(),
+                                layout,
+                                e);
+                    }
+                }
+            }
+        });
+        
+        setLayout(new BorderLayout());
+        add(vv, BorderLayout.CENTER);
+        // set up controls
+        add(setUpControls(), BorderLayout.SOUTH);
+	}
+
+    boolean isBlessed( Edge e ) {
+    	Pair<Node> endpoints = mGraph.getEndpoints(e);
+		Node v1= endpoints.getFirst()	;
+		Node v2= endpoints.getSecond() ;
+		return v1.equals(v2) == false && mPred.contains(v1) && mPred.contains(v2);
+    }
+    
+	/**
+	 * @author danyelf
+	 */
+	public class MyEdgePaintFunction implements Transformer<Edge,Paint> {
+
+		public Paint transform(Edge e) {
+			if ( mPred == null || mPred.size() == 0) return Color.BLACK;
+			if( isBlessed( e )) {
+				return new Color(0.0f, 0.0f, 1.0f, 0.5f);//Color.BLUE;
+			} else {
+				return Color.LIGHT_GRAY;
+			}
+		}
+	}
+
+	public class MyEdgeStrokeFunction implements Transformer<Edge,Stroke> {
+        protected final Stroke THIN = new BasicStroke(1);
+        protected final Stroke THICK = new BasicStroke(1);
+
+        public Stroke transform(Edge e) {
+			if ( mPred == null || mPred.size() == 0) return THIN;
+			if (isBlessed( e ) ) {
+			    return THICK;
+			} else 
+			    return THIN;
+        }
+
+	}
+
+	/**
+	 * @author danyelf
+	 */
+	public class MyVertexDrawPaintFunction<V> implements Transformer<V,Paint> {
+
+		public Paint transform(V v) {
+			return Color.black;
+		}
+
+	}
+
+	public class MyVertexFillPaintFunction<V> implements Transformer<V,Paint> {
+
+		public Paint transform( V v ) {
+		
+			if ( v == mFrom) {
+				//System.out.println("Should be blue: "+v.toString());
+				return Color.BLUE;
+			}
+			if ( v == mTo ) {
+				//System.out.println("Should be blue: "+v.toString());
+				return Color.BLUE;
+			}
+			if ( mPred == null ) {
+				//System.out.println("Nothing");
+				return Color.LIGHT_GRAY;
+			} else {
+				if ( mPred.contains(v)) {
+					//System.out.println("Should be red: "+v.toString());
+					return Color.RED;
+				} else {
+					return Color.LIGHT_GRAY;
+				}
+			}
+		}
+
+	}
+
+	/**
+	 *  
+	 */
+	private JPanel setUpControls() {
+		JPanel jp = new JPanel();
+		jp.setBackground(Color.WHITE);
+		jp.setLayout(new BoxLayout(jp, BoxLayout.PAGE_AXIS));
+		jp.setBorder(BorderFactory.createLineBorder(Color.black, 3));		
+		jp.add(
+			new JLabel("Select a pair of vertices for which a shortest path will be displayed"));
+		JPanel jp2 = new JPanel();
+		jp2.add(new JLabel("vertex from", SwingConstants.LEFT));
+		jp2.add(getSelectionBox(true));
+		jp2.setBackground(Color.white);
+		JPanel jp3 = new JPanel();
+		jp3.add(new JLabel("vertex to", SwingConstants.LEFT));
+		jp3.add(getSelectionBox(false));
+		jp3.setBackground(Color.white);
+		jp.add( jp2 );
+		jp.add( jp3 );
+		return jp;
+	}
+
+	private Component getSelectionBox(final boolean from) {
+
+		Set<String> s = new TreeSet<String>();
+
+		for (Node v : mGraph.getVertices()) {
+			s.add(v.toString());
+		}
+		final JComboBox choices = new JComboBox(s.toArray());
+		choices.setSelectedIndex(-1);
+		choices.setBackground(Color.WHITE);
+		choices.addActionListener(new ActionListener() {
+
+			public void actionPerformed(ActionEvent e) {
+				Node v = getNodeFromString(choices.getSelectedItem()); //probably source of problems
+				
+
+				if (from) {
+					mFrom = v;
+					//System.out.println("From: "+mFrom.toString());
+				} else {
+					mTo = v;
+					//if(mTo!=null)
+					//System.out.println("To: "+mTo.toString());
+				}
+				drawShortest();
+				repaint();				
+			}
+		});
+		return choices;
+	}
+
+	/**
+	 *  
+	 */
+	protected void drawShortest() {
+		if (mFrom == null || mTo == null) {
+			
+			return;
+		}
+		BFSDistanceLabeler<Node,Edge> bdl = new BFSDistanceLabeler<Node,Edge>();
+		bdl.labelDistances(mGraph, mFrom);
+		mPred = new HashSet<Node>();
+
+		// grab a predecessor
+		Node v = mTo;
+		Set<Node> prd = bdl.getPredecessors(v);
+		System.out.println(prd.size());
+		mPred.add( mTo );
+		while( prd != null && prd.size() > 0) {
+			v = prd.iterator().next();
+			System.out.println(v.toString());
+			mPred.add( v );
+			if ( v == mFrom ) return;
+			prd = bdl.getPredecessors(v);
+		}
+	}
+
+	public static void main(String[] s) {
+		JFrame jf = new JFrame();
+		jf.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		jf.getContentPane().add(new ShortestPathTest());
+		jf.pack();
+		jf.setVisible(true);
+	}
+
+	/**
+	 * @return the graph for this demo
+	 */
+	Graph<Node,Edge> getGraph() {
+
+		Graph<Node,Edge> g =
+			new EppsteinPowerLawGenerator<Node,Edge>(
+					new GraphFactory(), new VertexFactory(), new EdgeFactory(), 26, 50, 50).create();
+		Set<Node> removeMe = new HashSet<Node>();
+		for (Node v : g.getVertices()) {
+            if ( g.degree(v) == 0 ) {
+                removeMe.add( v );
+            }
+        }
+		for(Node v : removeMe) {
+			g.removeVertex(v);
+		}
+		return g;
+	}
+
+	public Node getNodeFromString(Object object)//TODO: change to binary search
+	{
+		 for(Node n: getGraph().getVertices())
+		 {
+			 if(object.equals(n.toString()))
+				 return n;
+		 }
+		 System.out.println("Node not found");
+		 return null;
+		
+	}
+	
+	static class GraphFactory implements Factory<Graph<Node,Edge>> {
+		public Graph<Node,Edge> create() {
+			return new SparseMultigraph<Node,Edge>();
+		}
+	}
+
+	static class VertexFactory implements Factory<Node> {
+		int count;
+		public Node create() {
+			return new Node(count++,50,false);
+		}
+
+	}
+	static class EdgeFactory implements Factory<Edge> {
+		int count;
+		public Edge create() {
+			return new Edge(count++,10,50);
+		}
+
+	}
+
+}
